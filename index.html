@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rugby Scoreboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .scoreboard {
+            margin: 0 auto;
+            width: 90%;
+            max-width: 400px;
+            background-color: rgba(255, 255, 255, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .lock-status {
+            margin-bottom: 20px;
+        }
+        .team {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .team p {
+            font-size: 24px;
+            margin: 0;
+        }
+        .team input {
+            font-size: 20px;
+            width: calc(50% - 10px);
+            max-width: calc(50% - 10px);
+            text-align: center;
+            margin-right: 10px;
+        }
+        .team-score {
+            width: 50%;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .score-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .score-button {
+            font-size: 18px;
+            padding: 10px 20px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Rugby Scoreboard</h1>
+    <div class="scoreboard">
+        <div class="lock-status">
+            <p>Scoreboard Status: <span id="lockStatus">Unlocked</span></p>
+            <button id="lockButton">Lock Scoreboard</button>
+        </div>
+        <div class="team">
+            <div>
+                <input type="text" id="home-team-name" value="Home" maxlength="8">
+            </div>
+            <div class="team-score">
+                <p id="home-team-score">0</p>
+            </div>
+        </div>
+        <div class="score-buttons">
+            <button class="score-button" onclick="changeScore('home', 3)">+3</button>
+            <button class="score-button" onclick="changeScore('home', 2)">+2</button>
+            <button class="score-button" onclick="changeScore('home', 1)">+1</button>
+            <button class="score-button" onclick="changeScore('home', -1)">-1</button>
+        </div>
+        <div class="team">
+            <div>
+                <input type="text" id="away-team-name" value="Away" maxlength="8">
+            </div>
+            <div class="team-score">
+                <p id="away-team-score">0</p>
+            </div>
+        </div>
+        <div class="score-buttons">
+            <button class="score-button" onclick="changeScore('away', 3)">+3</button>
+            <button class="score-button" onclick="changeScore('away', 2)">+2</button>
+            <button class="score-button" onclick="changeScore('away', 1)">+1</button>
+            <button class="score-button" onclick="changeScore('away', -1)">-1</button>
+        </div>
+        <div class="score-buttons">
+            <button class="score-button" onclick="clearScore()">Clear Score</button>
+        </div>
+    </div>
+
+    <script>
+        var lockStatus = document.getElementById("lockStatus");
+        var lockButton = document.getElementById("lockButton");
+        var homeScore = document.getElementById("home-team-score");
+        var awayScore = document.getElementById("away-team-score");
+        var homeName = document.getElementById("home-team-name");
+        var awayName = document.getElementById("away-team-name");
+
+        var ws = new WebSocket('ws://' + window.location.hostname + ':81/');
+
+        ws.onmessage = function(event) {
+            var data = event.data;
+            if (data === "true" || data === "false") {
+                lockStatus.textContent = data === "true" ? "Locked" : "Unlocked";
+            } else if (data.startsWith("home_name:")) {
+                var newName = data.substring(10); // Remove "home_name:" prefix
+                homeName.value = newName;
+            } else if (data.startsWith("away_name:")) {
+                var newName = data.substring(10); // Remove "away_name:" prefix
+                awayName.value = newName;
+            } else {
+                var scores = data.split(";");
+                var home = scores[0].split(":")[1];
+                var away = scores[1].split(":")[1];
+                homeScore.textContent = home;
+                awayScore.textContent = away;
+            }
+        };
+
+        lockButton.onclick = function() {
+            ws.send("toggle_lock");
+        };
+
+        function changeScore(team, points) {
+            ws.send(team + ':' + points.toString());
+        }
+
+        function clearScore() {
+            ws.send("clear_score");
+        }
+
+        homeName.addEventListener('change', function() {
+            ws.send("home_name:" + homeName.value);
+        });
+
+        awayName.addEventListener('change', function() {
+            ws.send("away_name:" + awayName.value);
+        });
+    </script>
+
+</body>
+
+
+
+</html>
